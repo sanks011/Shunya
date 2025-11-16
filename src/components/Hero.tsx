@@ -1,8 +1,15 @@
-import React from "react";
+import React, { useState } from "react";
 import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { LoginModal } from "@/components/LoginModal";
 
 export const Hero = React.memo(() => {
+  const [loginModalOpen, setLoginModalOpen] = useState(false);
+
+  const handleGetStarted = () => {
+    setLoginModalOpen(true);
+  };
+
   return (
     <section
       className="relative min-h-screen flex flex-col items-center justify-start px-6 py-20 md:py-24"
@@ -38,7 +45,7 @@ export const Hero = React.memo(() => {
       </h1>
 
       <p className="text-sm md:text-base text-center max-w-2xl px-6 mb-10 text-muted-foreground">
-        Shunya is an AI builder that generates complete applications with proper structure, <br />live previews, and automated deployments - all from a simple prompt.
+        Build full apps from a prompt - live previews, structure, and deployments.
       </p>
 
       <div className="flex items-center gap-4 relative z-10 mb-16">
@@ -47,6 +54,7 @@ export const Hero = React.memo(() => {
           size="lg"
           className="rounded-lg flex items-center justify-center bg-foreground text-background hover:bg-foreground/90 hover:scale-105 active:scale-95 transition-all"
           aria-label="Get started with Shunya"
+          onClick={handleGetStarted}
         >
           Get started
         </Button>
@@ -82,6 +90,7 @@ export const Hero = React.memo(() => {
           />
         </div>
       </div>
+      <LoginModal isOpen={loginModalOpen} onClose={() => setLoginModalOpen(false)} />
     </section>
   );
 });

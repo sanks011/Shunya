@@ -73,7 +73,7 @@ function useNumberCycler(totalSteps = 4, interval = 3000) {
   const increment = useCallback(() => {
     setCurrentNumber((prev) => (prev + 1) % totalSteps);
     setupTimer();
-  }, [setupTimer]);
+  }, [setupTimer, totalSteps]);
 
   useEffect(() => {
     setupTimer();
@@ -119,7 +119,7 @@ const FeatureCard: React.FC<{
     <div
       className="animated-cards relative w-full rounded-[16px]"
       onMouseMove={handleMouseMove}
-      style={{ ["--x" as any]: `${pos.x}px`, ["--y" as any]: `${pos.y}px` }}
+      style={{ ["--x" as string]: `${pos.x}px`, ["--y" as string]: `${pos.y}px` }}
     >
       <div className={cn("group relative w-full overflow-hidden rounded-3xl border border-border bg-card transition duration-300", bgClass)}>
         <div className="m-6 min-h-[350px] w-full relative">
@@ -203,7 +203,7 @@ export const FeatureCarousel: React.FC<ComponentProps> = ({ image, bgClass, ...p
         );
       case 2:
         return (
-          <MotionImg className={clsx(defaultClasses.step3img, "rounded-2xl")} src={image.step3light} alt={image.alt ?? "step"} style={{ position: "absolute" }} {...ANIMATION_PRESETS.fadeInScale} onAnimationComplete={handleAnimationComplete as any} />
+          <MotionImg className={clsx(defaultClasses.step3img, "rounded-2xl")} src={image.step3light} alt={image.alt ?? "step"} style={{ position: "absolute" }} {...ANIMATION_PRESETS.fadeInScale} onAnimationComplete={() => handleAnimationComplete()} />
         );
       case 3:
         return (
