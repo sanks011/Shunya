@@ -55,22 +55,22 @@ export default function FeaturedSectionStats() {
             <AreaChart data={data}>
               <defs>
                 <linearGradient id="colorBlue" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="hsl(210 100% 70%)" stopOpacity={0.4} />
-                  <stop offset="95%" stopColor="hsl(210 100% 70%)" stopOpacity={0} />
+                  <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.4} />
+                  <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
                 </linearGradient>
               </defs>
               <Tooltip 
                 contentStyle={{
-                  backgroundColor: "hsl(220 25% 8%)",
-                  border: "1px solid hsl(217 25% 20%)",
+                  backgroundColor: "hsl(var(--card))",
+                  border: "1px solid hsl(var(--border))",
                   borderRadius: "0.5rem",
-                  color: "hsl(210 40% 98%)"
+                  color: "hsl(var(--card-foreground))"
                 }}
               />
               <Area
                 type="monotone"
                 dataKey="value"
-                stroke="hsl(210 100% 70%)"
+                stroke="hsl(var(--primary))"
                 strokeWidth={2}
                 fillOpacity={1}
                 fill="url(#colorBlue)"

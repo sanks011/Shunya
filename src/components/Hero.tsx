@@ -27,7 +27,7 @@ export const Hero = React.memo(() => {
       <h1
         className="text-4xl md:text-5xl lg:text-6xl font-medium text-center max-w-3xl px-6 leading-tight mb-6"
         style={{
-          background: "linear-gradient(to bottom, hsl(210 40% 98%), hsl(210 40% 98% / 0.95), hsl(210 40% 98% / 0.6))",
+          background: "var(--hero-text-gradient)",
           WebkitBackgroundClip: "text",
           WebkitTextFillColor: "transparent",
           backgroundClip: "text",
@@ -58,7 +58,7 @@ export const Hero = React.memo(() => {
           style={{
             top: "-23%",
             transform: "translateX(-50%)",
-            filter: "hue-rotate(180deg) saturate(1.5)"
+            filter: "var(--hero-glow-filter)"
           }}
           aria-hidden="true"
         >
@@ -77,7 +77,7 @@ export const Hero = React.memo(() => {
             className="w-full h-auto rounded-lg shadow-2xl"
             loading="eager"
             style={{
-              boxShadow: "0 0 60px hsl(210 100% 70% / 0.3)"
+              boxShadow: "var(--shadow-glow)"
             }}
           />
         </div>
