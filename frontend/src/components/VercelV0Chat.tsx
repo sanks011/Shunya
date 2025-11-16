@@ -1,7 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useCallback } from "react";
-import { useState } from "react";
+import { useEffect, useRef, useCallback, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
@@ -12,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { saveApiSettings, getApiSettings, type ApiSettings } from "@/lib/api";
 import { toast } from "sonner";
 import { ShiningText } from "@/components/ui/shining-text";
+import { useChatHistory } from "@/contexts/ChatHistoryContext";
 import {
     ImageIcon,
     FileUp,
@@ -88,6 +88,7 @@ export function VercelV0Chat() {
         maxHeight: 200,
     });
     const navigate = useNavigate();
+    const { addChat } = useChatHistory();
 
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [apiKey, setApiKey] = useState("");
@@ -169,21 +170,30 @@ export function VercelV0Chat() {
         if (e.key === "Enter" && !e.shiftKey) {
             e.preventDefault();
             if (value.trim()) {
-                const userInput = value.trim().toLowerCase();
+                const userInput = value.trim();
+                const userInputLower = userInput.toLowerCase();
 
                 // Check if it's an instruction (contains keywords like make, create, build, etc.)
                 const instructionKeywords = ['make', 'create', 'build', 'design', 'develop', 'generate', 'add', 'implement'];
-                const isInstruction = instructionKeywords.some(keyword => userInput.includes(keyword));
+                const isInstruction = instructionKeywords.some(keyword => userInputLower.includes(keyword));
 
                 if (isInstruction) {
                     // Generate a random chat ID
                     const chatId = Math.random().toString(36).substring(2, 15);
                     
+                    // Add chat to history
+                    addChat({
+                        id: chatId,
+                        title: userInput.length > 50 ? userInput.substring(0, 50) + '...' : userInput,
+                        userRequest: userInput,
+                        status: 'active'
+                    });
+                    
                     // Show thinking animation
                     setIsThinking(true);
                     
-                    // Navigate to chat route
-                    navigate(`/chat/${chatId}`);
+                    // Navigate to chat route with user request
+                    navigate(`/chat/${chatId}`, { state: { userRequest: userInput } });
                 }
 
                 setValue("");
@@ -196,7 +206,7 @@ export function VercelV0Chat() {
         <div className="flex flex-col items-center w-full max-w-4xl mx-auto p-4 space-y-8">
             {isThinking ? (
                 <div className="flex flex-col items-center justify-center min-h-[400px] space-y-8">
-                    <ShiningText text="HextaAI is thinking..." />
+                    <ShiningText text="Shunya..." />
                 </div>
             ) : (
                 <>
@@ -454,9 +464,9 @@ export function VercelV0Chat() {
                     />
                 </div>
             </div>
-        </>
-    )}
-    </div>
+                </>
+            )}
+        </div>
     );
 }
 

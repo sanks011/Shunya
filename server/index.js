@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import mongoose from 'mongoose';
+import codeGenRouter from './routes/codeGen.js';
 
 dotenv.config();
 
@@ -63,6 +64,7 @@ const userSettingsSchema = new mongoose.Schema({
 const UserSettings = mongoose.model('UserSettings', userSettingsSchema);
 
 // API Routes
+app.use('/api/codegen', codeGenRouter);
 
 // Save or update user settings
 app.post('/api/settings', async (req, res) => {
