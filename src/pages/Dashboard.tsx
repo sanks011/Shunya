@@ -1,6 +1,5 @@
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { getAuth, signOut } from "firebase/auth";
+import { getAuth } from "firebase/auth";
 import { app } from "@/lib/firebase";
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
@@ -8,6 +7,8 @@ import { User } from "firebase/auth";
 import { WhatsNewDialog } from "@/components/WhatsNewDialog";
 import { Sidebar } from "@/components/Sidebar";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
+import { DashboardNavbar } from "@/components/DashboardNavbar";
+import { Button } from "@/components/ui/button";
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -32,16 +33,6 @@ export default function Dashboard() {
     return () => unsubscribe();
   }, [navigate]);
 
-  const handleSignOut = async () => {
-    const auth = getAuth(app);
-    try {
-      await signOut(auth);
-      navigate('/');
-    } catch (error) {
-      console.error('Sign out error:', error);
-    }
-  };
-
   if (!user) {
     return <LoadingSpinner />;
   }
@@ -49,17 +40,13 @@ export default function Dashboard() {
   return (
     <main className="min-h-screen bg-background text-foreground flex">
       <Sidebar />
-      <div className="flex-1">
-        <div className="container mx-auto px-6 py-8">
-          <div className="max-w-4xl mx-auto">
-            <div className="flex items-center justify-between mb-8">
-              <div>
-                <h1 className="text-3xl font-bold mb-2">Welcome to Shunya</h1>
-                <p className="text-muted-foreground">Your AI builder dashboard</p>
-              </div>
-              <Button onClick={handleSignOut} variant="outline">
-                Sign Out
-              </Button>
+      <div className="flex-1 flex flex-col">
+        <DashboardNavbar user={user} />
+        <div className="flex-1 p-6 m-4 bg-muted/30 rounded-tl-3xl overflow-auto">
+          <div className="max-w-6xl mx-auto">
+            <div className="mb-8">
+              <h1 className="text-3xl font-bold mb-2">Welcome back, {user.displayName || 'there'}!</h1>
+              <p className="text-muted-foreground">Ready to build something amazing?</p>
             </div>
 
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
