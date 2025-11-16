@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useCallback } from "react";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -10,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button";
 import { saveApiSettings, getApiSettings, type ApiSettings } from "@/lib/api";
 import { toast } from "sonner";
+import { ShiningText } from "@/components/ui/shining-text";
 import {
     ImageIcon,
     FileUp,
@@ -85,6 +87,7 @@ export function VercelV0Chat() {
         minHeight: 60,
         maxHeight: 200,
     });
+    const navigate = useNavigate();
 
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [apiKey, setApiKey] = useState("");
@@ -92,6 +95,7 @@ export function VercelV0Chat() {
     const [model, setModel] = useState("");
     const [savedSettings, setSavedSettings] = useState<ApiSettings | null>(null);
     const [isLoading, setIsLoading] = useState(false);
+    const [isThinking, setIsThinking] = useState(false);
 
     const providers = {
         openai: ['gpt-3.5-turbo', 'gpt-3.5-turbo-16k', 'gpt-4', 'gpt-4-32k', 'gpt-4-turbo', 'gpt-4-turbo-preview', 'gpt-4o', 'gpt-4o-mini', 'gpt-4-vision-preview'],
@@ -165,6 +169,23 @@ export function VercelV0Chat() {
         if (e.key === "Enter" && !e.shiftKey) {
             e.preventDefault();
             if (value.trim()) {
+                const userInput = value.trim().toLowerCase();
+
+                // Check if it's an instruction (contains keywords like make, create, build, etc.)
+                const instructionKeywords = ['make', 'create', 'build', 'design', 'develop', 'generate', 'add', 'implement'];
+                const isInstruction = instructionKeywords.some(keyword => userInput.includes(keyword));
+
+                if (isInstruction) {
+                    // Generate a random chat ID
+                    const chatId = Math.random().toString(36).substring(2, 15);
+                    
+                    // Show thinking animation
+                    setIsThinking(true);
+                    
+                    // Navigate to chat route
+                    navigate(`/chat/${chatId}`);
+                }
+
                 setValue("");
                 adjustHeight(true);
             }
@@ -173,11 +194,17 @@ export function VercelV0Chat() {
 
     return (
         <div className="flex flex-col items-center w-full max-w-4xl mx-auto p-4 space-y-8">
-            <h1 className="text-4xl font-bold text-foreground">
-                What can I help you ship?
-            </h1>
+            {isThinking ? (
+                <div className="flex flex-col items-center justify-center min-h-[400px] space-y-8">
+                    <ShiningText text="HextaAI is thinking..." />
+                </div>
+            ) : (
+                <>
+                    <h1 className="text-4xl font-bold text-foreground">
+                        What can I help you ship?
+                    </h1>
 
-            <div className="w-full">
+                    <div className="w-full">
                 <div className="relative bg-black/60 backdrop-blur-sm rounded-xl border border-neutral-700">
                     <div
                         aria-hidden="true"
@@ -427,7 +454,9 @@ export function VercelV0Chat() {
                     />
                 </div>
             </div>
-        </div>
+        </>
+    )}
+    </div>
     );
 }
 
