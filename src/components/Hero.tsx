@@ -1,7 +1,6 @@
 import React from "react";
 import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import FeatureCarousel from "@/components/FeatureCarousel";
 
 export const Hero = React.memo(() => {
   return (
@@ -72,19 +71,14 @@ export const Hero = React.memo(() => {
         </div>
         
         <div className="relative z-10">
-          <FeatureCarousel
-            title="Interactive Feature Demo"
-            description="Showcase your features with smooth animations and transitions"
-            image={{
-              step1light1: "https://i.postimg.cc/SKcdVTr1/Dashboard2.png",
-              step1light2: "https://i.postimg.cc/SKcdVTr1/Dashboard2.png",
-              step2light1: "https://i.postimg.cc/SKcdVTr1/Dashboard2.png",
-              step2light2: "https://i.postimg.cc/SKcdVTr1/Dashboard2.png",
-              step3light: "https://i.postimg.cc/SKcdVTr1/Dashboard2.png",
-              step4light: "https://i.postimg.cc/SKcdVTr1/Dashboard2.png",
-              alt: "Feature demo",
+          <img
+            src="https://i.postimg.cc/SKcdVTr1/Dashboard2.png"
+            alt="Dashboard preview showing AI builder interface with code generation and live preview"
+            className="w-full h-auto rounded-lg shadow-2xl"
+            loading="eager"
+            style={{
+              boxShadow: "0 0 60px hsl(210 100% 70% / 0.3)"
             }}
-            bgClass="bg-gradient-to-tr from-neutral-900/90 to-neutral-800/90"
           />
         </div>
       </div>

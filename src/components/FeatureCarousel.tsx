@@ -121,15 +121,15 @@ const FeatureCard: React.FC<{
       onMouseMove={handleMouseMove}
       style={{ ["--x" as any]: `${pos.x}px`, ["--y" as any]: `${pos.y}px` }}
     >
-      <div className={cn("group relative w-full overflow-hidden rounded-3xl border border-black/10 bg-gradient-to-b from-neutral-900/90 to-stone-800 transition duration-300 dark:from-neutral-950/90 dark:to-neutral-800/90", bgClass)}>
+      <div className={cn("group relative w-full overflow-hidden rounded-3xl border border-border bg-card transition duration-300", bgClass)}>
         <div className="m-6 min-h-[350px] w-full relative">
           <AnimatePresence mode="wait">
             <motion.div key={step} className="flex w-4/6 flex-col gap-3" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.3 }}>
-              <motion.h2 className="text-xl font-bold tracking-tight text-white md:text-2xl" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1, duration: 0.3 }}>
+              <motion.h2 className="text-xl font-bold tracking-tight text-foreground md:text-2xl" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1, duration: 0.3 }}>
                 {steps[step].title}
               </motion.h2>
               <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.2, duration: 0.3 }}>
-                <p className="text-sm leading-5 text-neutral-300 sm:text-base sm:leading-5 dark:text-zinc-400">{steps[step].description}</p>
+                <p className="text-sm leading-5 text-muted-foreground sm:text-base sm:leading-5">{steps[step].description}</p>
               </motion.div>
             </motion.div>
           </AnimatePresence>
@@ -148,13 +148,13 @@ const Steps: React.FC<{ steps: readonly Step[]; current: number; onChange: (n: n
         const isCurrent = current === stepIdx;
         const isFuture = !isCompleted && !isCurrent;
         return (
-          <motion.li key={`${step.name}-${stepIdx}`} initial="inactive" animate={isCurrent ? "active" : "inactive"} variants={stepVariants} transition={{ duration: 0.3 }} className={cn("relative z-50 rounded-full px-3 py-1 transition-all duration-300 ease-in-out md:flex", isCompleted ? "bg-neutral-500/20" : "bg-neutral-500/10")}>
+          <motion.li key={`${step.name}-${stepIdx}`} initial="inactive" animate={isCurrent ? "active" : "inactive"} variants={stepVariants} transition={{ duration: 0.3 }} className={cn("relative z-50 rounded-full px-3 py-1 transition-all duration-300 ease-in-out md:flex", isCompleted ? "bg-primary/20" : "bg-primary/10")}>
             <div className={cn("group flex w-full cursor-pointer items-center focus:outline-none focus-visible:ring-2", (isFuture || isCurrent) && "pointer-events-none")} onClick={() => onChange(stepIdx)}>
               <span className="flex items-center gap-2 text-sm font-medium">
-                <motion.span className={cn("flex h-4 w-4 shrink-0 items-center justify-center rounded-full duration-300", isCompleted ? "bg-brand-400 text-white dark:bg-brand-400" : isCurrent ? "bg-brand-300/80 text-neutral-400 dark:bg-neutral-500/50" : "bg-brand-300/10 dark:bg-neutral-500/20")} initial={false} animate={{ scale: isCurrent ? 1.2 : 1 }}>
-                  {isCompleted ? <div className="h-3 w-3"><IconCheck /></div> : <span className={cn("text-xs", !isCurrent && "text-[#C6EA7E]")}>{stepIdx + 1}</span>}
+                <motion.span className={cn("flex h-4 w-4 shrink-0 items-center justify-center rounded-full duration-300", isCompleted ? "bg-primary text-primary-foreground" : isCurrent ? "bg-primary/50 text-foreground" : "bg-primary/10")} initial={false} animate={{ scale: isCurrent ? 1.2 : 1 }}>
+                  {isCompleted ? <div className="h-3 w-3"><IconCheck /></div> : <span className={cn("text-xs", !isCurrent && "text-primary")}>{stepIdx + 1}</span>}
                 </motion.span>
-                <motion.span initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} className={clsx("text-sm font-medium duration-300", isCompleted ? "text-muted-foreground" : isCurrent ? "text-lime-300 dark:text-lime-500" : "text-neutral-500")}>{step.name}</motion.span>
+                <motion.span initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} className={clsx("text-sm font-medium duration-300", isCompleted ? "text-muted-foreground" : isCurrent ? "text-primary" : "text-muted-foreground/50")}>{step.name}</motion.span>
               </span>
             </div>
           </motion.li>
@@ -165,12 +165,12 @@ const Steps: React.FC<{ steps: readonly Step[]; current: number; onChange: (n: n
 );
 
 const defaultClasses = {
-  step1img1: "pointer-events-none w-[50%] border border-stone-100/10 transition-all duration-500 dark:border-stone-700/50 rounded-2xl",
-  step1img2: "pointer-events-none w-[60%] border border-stone-100/10 dark:border-stone-700/50 transition-all duration-500 overflow-hidden rounded-2xl",
-  step2img1: "pointer-events-none w-[50%] border border-stone-100/10 transition-all duration-500 dark:border-stone-700 rounded-2xl overflow-hidden",
-  step2img2: "pointer-events-none w-[40%] border border-stone-100/10 dark:border-stone-700 transition-all duration-500 rounded-2xl overflow-hidden",
-  step3img: "pointer-events-none w-[90%] border border-stone-100/10 dark:border-stone-700 rounded-2xl transition-all duration-500 overflow-hidden",
-  step4img: "pointer-events-none w-[90%] border border-stone-100/10 dark:border-stone-700 rounded-2xl transition-all duration-500 overflow-hidden",
+  step1img1: "pointer-events-none w-[50%] border border-border transition-all duration-500 rounded-2xl",
+  step1img2: "pointer-events-none w-[60%] border border-border transition-all duration-500 overflow-hidden rounded-2xl",
+  step2img1: "pointer-events-none w-[50%] border border-border transition-all duration-500 rounded-2xl overflow-hidden",
+  step2img2: "pointer-events-none w-[40%] border border-border transition-all duration-500 rounded-2xl overflow-hidden",
+  step3img: "pointer-events-none w-[90%] border border-border rounded-2xl transition-all duration-500 overflow-hidden",
+  step4img: "pointer-events-none w-[90%] border border-border rounded-2xl transition-all duration-500 overflow-hidden",
 } as const;
 
 export const FeatureCarousel: React.FC<ComponentProps> = ({ image, bgClass, ...props }) => {
