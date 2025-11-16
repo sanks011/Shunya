@@ -4,6 +4,8 @@ import { PartnersSection } from "@/components/PartnersSection";
 import { AIFeatureSection } from "@/components/AIFeatureSection";
 import FeatureCarousel from "@/components/FeatureCarousel";
 import FeaturedSectionStats from "@/components/FeaturedSectionStats";
+import { CallToAction } from "@/components/CallToAction";
+import { Footerdemo } from "@/components/Footer";
 
 const Index = () => {
   return (
@@ -37,6 +39,12 @@ const Index = () => {
       </section>
 
       <FeaturedSectionStats />
+
+      <section className="w-full flex items-center justify-center p-4 py-20">
+        <CallToAction />
+      </section>
+
+      <Footerdemo />
     </main>
   );
 };
