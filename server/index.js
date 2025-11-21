@@ -3,6 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import mongoose from 'mongoose';
 import codeGenRouter from './routes/codeGen.js';
+import sandboxErrorFixRouter from './routes/sandboxErrorFix.js';
 
 dotenv.config();
 
@@ -65,6 +66,7 @@ const UserSettings = mongoose.model('UserSettings', userSettingsSchema);
 
 // API Routes
 app.use('/api/codegen', codeGenRouter);
+app.use('/api/sandbox', sandboxErrorFixRouter);
 
 // Save or update user settings
 app.post('/api/settings', async (req, res) => {

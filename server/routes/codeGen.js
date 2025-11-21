@@ -1,6 +1,9 @@
 import express from 'express';
 import LLMService from '../services/llmService.js';
+import CodeSupervisorService from '../services/codeSupervisorService.js';
+import DiagnosticService from '../services/diagnosticService.js';
 import { createPlanningPrompt, createCodeGenerationPrompt } from '../prompts/codeGeneration.js';
+import { createReasoningPrompt } from '../prompts/reasoning.js';
 
 const router = express.Router();
 
@@ -28,6 +31,33 @@ router.post('/generate', async (req, res) => {
 
         // Send initial status
         res.write(`data: ${JSON.stringify({ type: 'status', message: 'Analyzing your request...' })}\n\n`);
+
+        // Step 0: Reasoning phase (optional for better results)
+        res.write(`data: ${JSON.stringify({ type: 'status', message: 'Reasoning about the best approach...' })}\n\n`);
+        
+        const reasoningMessages = createReasoningPrompt(userRequest);
+        let reasoningResponse = '';
+
+        try {
+            for await (const chunk of llmService.streamCompletion(reasoningMessages)) {
+                reasoningResponse += chunk;
+                res.write(`data: ${JSON.stringify({ type: 'reasoning_chunk', content: chunk })}\n\n`);
+            }
+
+            // Parse reasoning (optional, for logging)
+            try {
+                const jsonMatch = reasoningResponse.match(/\{[\s\S]*\}/);
+                if (jsonMatch) {
+                    const reasoning = JSON.parse(jsonMatch[0]);
+                    console.log('🧠 AI Reasoning:', reasoning.reasoning?.understanding);
+                    res.write(`data: ${JSON.stringify({ type: 'reasoning_complete', reasoning: reasoning })}\n\n`);
+                }
+            } catch (e) {
+                console.log('⚠️ Could not parse reasoning, continuing...');
+            }
+        } catch (reasoningError) {
+            console.log('⚠️ Reasoning step failed, continuing with planning...', reasoningError.message);
+        }
 
         // Step 1: Generate file structure
         res.write(`data: ${JSON.stringify({ type: 'status', message: 'Planning project structure...' })}\n\n`);
@@ -61,7 +91,7 @@ router.post('/generate', async (req, res) => {
 
         // Step 2: Generate code for each file
         const files = fileStructure.fileStructure.filter(item => item.type === 'file');
-        const generatedFiles = [];
+        let generatedFiles = [];
 
         for (let i = 0; i < files.length; i++) {
             const file = files[i];
@@ -97,21 +127,120 @@ router.post('/generate', async (req, res) => {
                 })}\n\n`);
             }
 
+            // Clean markdown code blocks and trim
+            let cleanedContent = codeContent.trim();
+            cleanedContent = cleanedContent.replace(/^```[\w]*\n/gm, '');
+            cleanedContent = cleanedContent.replace(/\n```$/gm, '');
+            cleanedContent = cleanedContent.replace(/```/g, '');
+            cleanedContent = cleanedContent.trim();
+
             // Send complete file
             generatedFiles.push({
                 path: file.path,
                 description: file.description,
-                content: codeContent.trim()
+                content: cleanedContent
             });
 
             res.write(`data: ${JSON.stringify({ 
                 type: 'file_complete', 
                 file: {
                     path: file.path,
-                    content: codeContent.trim()
+                    content: cleanedContent
                 }
             })}\n\n`);
         }
+
+        // Step 3: Supervise and validate generated code
+        res.write(`data: ${JSON.stringify({ type: 'status', message: 'Validating and fixing code...' })}\n\n`);
+        
+        const supervisor = new CodeSupervisorService(provider, apiKey, model);
+        
+        // Clean all generated files first
+        generatedFiles = generatedFiles.map(f => ({
+            ...f,
+            content: supervisor.cleanCodeContent(f.content)
+        }));
+        
+        const validation = await supervisor.validateAndFixCode(fileStructure, generatedFiles);
+
+        // Update fileStructure with fixed dependencies
+        if (validation.fileStructure) {
+            fileStructure = validation.fileStructure;
+        }
+
+        // Apply fixes if any were found
+        if (!validation.isValid && validation.fixedFiles && Object.keys(validation.fixedFiles).length > 0) {
+            console.log('📝 Applying supervisor fixes...');
+            for (const [filePath, fixedContent] of Object.entries(validation.fixedFiles)) {
+                const fileIndex = generatedFiles.findIndex(f => f.path === filePath || f.path === `/${filePath}` || `/${f.path}` === filePath);
+                if (fileIndex !== -1) {
+                    generatedFiles[fileIndex].content = supervisor.cleanCodeContent(fixedContent);
+                    res.write(`data: ${JSON.stringify({ 
+                        type: 'file_fixed', 
+                        file: filePath,
+                        message: 'Fixed by supervisor AI'
+                    })}\n\n`);
+                } else {
+                    // Add new fixed file
+                    generatedFiles.push({
+                        path: filePath,
+                        description: `Fixed ${filePath}`,
+                        content: supervisor.cleanCodeContent(fixedContent)
+                    });
+                    res.write(`data: ${JSON.stringify({ 
+                        type: 'file_added', 
+                        file: filePath,
+                        message: 'Added by supervisor AI'
+                    })}\n\n`);
+                }
+            }
+        }
+
+        // Ensure required files exist for React projects
+        if (fileStructure.projectType.toLowerCase().includes('react')) {
+            const defaultFiles = supervisor.createDefaultFiles(fileStructure.projectType, fileStructure.dependencies);
+            
+            for (const [filePath, content] of Object.entries(defaultFiles)) {
+                const exists = generatedFiles.some(f => 
+                    f.path === filePath || 
+                    f.path === `/${filePath}` || 
+                    `/${f.path}` === filePath ||
+                    f.path.endsWith(filePath)
+                );
+                
+                if (!exists) {
+                    generatedFiles.push({
+                        path: filePath,
+                        description: `Default ${filePath}`,
+                        content: content
+                    });
+                    res.write(`data: ${JSON.stringify({ 
+                        type: 'file_added', 
+                        file: filePath,
+                        message: 'Added missing file'
+                    })}\n\n`);
+                }
+            }
+        }
+
+        res.write(`data: ${JSON.stringify({ type: 'status', message: 'Code ready!' })}\n\n`);
+
+        // Step 4: Run diagnostic AI to analyze and fix sandbox issues
+        res.write(`data: ${JSON.stringify({ type: 'status', message: 'Running diagnostic AI...' })}\n\n`);
+        
+        const diagnostic = new DiagnosticService(provider, apiKey, model);
+        const diagnosis = await diagnostic.analyzeSandpackIssue(fileStructure, generatedFiles);
+        
+        res.write(`data: ${JSON.stringify({ 
+            type: 'diagnostic_report', 
+            diagnosis: diagnosis.diagnosis,
+            recommendation: diagnosis.recommendation 
+        })}\n\n`);
+
+        // Apply diagnostic fixes
+        generatedFiles = await diagnostic.fixBasedOnDiagnosis(diagnosis, generatedFiles);
+
+        res.write(`data: ${JSON.stringify({ type: 'status', message: 'All diagnostics complete!' })}\n\n`);
 
         // Send completion event
         res.write(`data: ${JSON.stringify({ 
