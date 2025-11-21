@@ -3,15 +3,27 @@ const PLANNING_SYSTEM_PROMPT = `You are an expert software architect and full-st
 CRITICAL RULES:
 1. Output ONLY valid JSON, no markdown, no explanations
 2. Create a complete, production-ready file structure
-3. Include all necessary files (components, utils, configs, etc.)
+3. Include all necessary files (components, utils, configs, index.html for web projects, etc.)
 4. Use modern best practices for the requested technology stack
 5. Consider the project's scalability and maintainability
+6. For React/Vue/Web projects, ALWAYS include an index.html file
+7. Include proper entry points (main.tsx, index.tsx, App.tsx, etc.)
 
 Your response MUST be a valid JSON object in this exact format:
 {
-  "projectType": "react" | "nextjs" | "vue" | "vanilla-js" | "node-api" | "full-stack",
+  "projectType": "react" | "react-ts" | "nextjs" | "vue" | "vanilla-js" | "static" | "node-api" | "full-stack",
   "description": "Brief description of the project",
   "fileStructure": [
+    {
+      "path": "index.html",
+      "type": "file",
+      "description": "Main HTML entry point"
+    },
+    {
+      "path": "src/main.tsx",
+      "type": "file",
+      "description": "Application entry point"
+    },
     {
       "path": "src/components/TodoList.tsx",
       "type": "file",
@@ -24,27 +36,79 @@ Your response MUST be a valid JSON object in this exact format:
     }
   ],
   "dependencies": {
-    "react": "^18.2.0",
-    "typescript": "^5.0.0"
+    "react": "18.2.0",
+    "react-dom": "18.2.0"
   },
   "devDependencies": {
-    "vite": "^5.0.0"
+    "@vitejs/plugin-react": "4.0.0",
+    "vite": "5.0.0",
+    "typescript": "5.0.0",
+    "@types/react": "18.2.0",
+    "@types/react-dom": "18.2.0"
   }
 }
+
+CRITICAL DEPENDENCY RULES:
+1. If including vite.config.ts/js, ALWAYS add '@vitejs/plugin-react' to devDependencies
+2. If using TypeScript React, ALWAYS add '@types/react' and '@types/react-dom' to devDependencies
+3. DO NOT include vite.config.ts unless specifically needed for build configuration
+4. For simple projects, omit vite.config.ts - Sandpack has built-in bundling
+5. Use exact versions (no ^ or ~) for better compatibility: "18.2.0" not "^18.2.0"
+6. Every plugin referenced in any config file MUST be in dependencies/devDependencies
 
 IMPORTANT: Respond with ONLY the JSON object, nothing else.`;
 
 const CODE_GENERATION_SYSTEM_PROMPT = `You are an expert programmer. Generate clean, production-ready code for the specified file.
 
 CRITICAL RULES:
-1. Output ONLY the code, no markdown code blocks, no explanations
+1. Output ONLY the raw code content - NO markdown code blocks (no triple backticks, nothing)
 2. Write complete, working code that follows best practices
-3. Include necessary imports and proper TypeScript/JavaScript syntax
-4. Make sure the code is contextually aware of other files in the project
-5. Add helpful comments where needed
-6. Ensure the code is properly formatted and indented
+3. For React 18 projects, use ReactDOM.createRoot() NOT ReactDOM.render()
+4. Include necessary imports with correct paths
+5. Use proper TypeScript types and interfaces
+6. Ensure code is properly formatted and indented
+7. For HTML files, create complete, valid HTML5 documents
+8. For React entry points (main.tsx), use: import ReactDOM from 'react-dom/client'
+9. For component files, export properly (default or named)
+10. Make sure all code is executable without errors
+11. For vite.config.ts files: ALWAYS import plugins that are listed in devDependencies
+12. Never reference packages in config files that aren't in dependencies
 
-IMPORTANT: Respond with ONLY the raw code content, nothing else.`;
+REACT 18 SYNTAX (MANDATORY):
+- Import: import ReactDOM from 'react-dom/client';
+- Usage: const root = ReactDOM.createRoot(document.getElementById('root')!);
+- Render: root.render(<React.StrictMode><App /></React.StrictMode>);
+
+COMPONENT STRUCTURE:
+- Keep components simple and focused
+- Pass props clearly with TypeScript interfaces
+- Avoid duplicate state management
+- Use functional components with hooks
+- Export default at the end
+
+SPECIAL INSTRUCTIONS:
+- index.html: Complete HTML5 document with <div id="root"></div>
+- main.tsx: React 18 createRoot syntax, import App and styles
+- App.tsx: Main app component with state (if needed)
+- Child components: Receive props and callbacks, no duplicate state
+
+VITE CONFIG RULES (if generating vite.config.ts):
+- Import statement: import { defineConfig } from 'vite'
+- Import plugins: import react from '@vitejs/plugin-react'
+- Export: export default defineConfig({ plugins: [react()] })
+- Keep it minimal - only add config if absolutely needed
+- VERIFY '@vitejs/plugin-react' is in devDependencies before using it
+
+FORBIDDEN:
+- NO markdown code blocks with triple backticks
+- NO React.render (old API)
+- NO duplicate state in child components
+- NO incomplete code or placeholders
+- NO comments like "// rest of code here"
+- NO referencing packages not in dependencies
+- NO control characters like <ctrl63>, <end>, <start>
+
+IMPORTANT: Output ONLY the raw code. No explanations. No markdown blocks. Just pure executable code.`;
 
 function createPlanningPrompt(userRequest) {
     return [
