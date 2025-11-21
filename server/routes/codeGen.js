@@ -2,6 +2,7 @@ import express from 'express';
 import LLMService from '../services/llmService.js';
 import CodeSupervisorService from '../services/codeSupervisorService.js';
 import DiagnosticService from '../services/diagnosticService.js';
+import AttributionService from '../services/attributionService.js';
 import { createPlanningPrompt, createCodeGenerationPrompt } from '../prompts/codeGeneration.js';
 import { createReasoningPrompt } from '../prompts/reasoning.js';
 
@@ -241,6 +242,18 @@ router.post('/generate', async (req, res) => {
         generatedFiles = await diagnostic.fixBasedOnDiagnosis(diagnosis, generatedFiles);
 
         res.write(`data: ${JSON.stringify({ type: 'status', message: 'All diagnostics complete!' })}\n\n`);
+
+        // Step 5: Add Shunya attribution
+        res.write(`data: ${JSON.stringify({ type: 'status', message: 'Adding attribution...' })}\n\n`);
+        
+        const attribution = new AttributionService();
+        generatedFiles = attribution.addAttribution(generatedFiles, fileStructure);
+        
+        // Add metadata file
+        const metadataFile = attribution.createMetadataFile(fileStructure, userRequest);
+        generatedFiles.push(metadataFile);
+        
+        console.log('✅ Added Shunya attribution to all files');
 
         // Send completion event
         res.write(`data: ${JSON.stringify({ 

@@ -5,6 +5,10 @@ import { getApiSettings } from "@/lib/api";
 import { toast } from "sonner";
 import { useChatHistory } from "@/contexts/ChatHistoryContext";
 import { FileTreeView } from "@/components/FileTreeView";
+import { CodePreview } from "@/components/CodePreview";
+import { CodeEditor } from "@/components/CodeEditor";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Code2, Eye, FolderTree } from "lucide-react";
 
 interface FileItem {
     path: string;
@@ -136,8 +140,18 @@ export default function Chat() {
                 setStatus(data.message);
                 break;
 
+            case 'reasoning_chunk':
+                // Could show reasoning progress if needed
+                break;
+
             case 'planning_chunk':
                 // Could show planning progress if needed
+                break;
+
+            case 'diagnostic_report':
+                console.log('🔍 DIAGNOSTIC REPORT:', data.diagnosis);
+                console.log('💡 RECOMMENDATION:', data.recommendation);
+                toast.info('Diagnostic AI analyzing sandbox...');
                 break;
 
             case 'file_structure':
@@ -157,15 +171,41 @@ export default function Chat() {
                 break;
 
             case 'file_complete':
-                setGeneratedFiles(prev => ({
-                    ...prev,
-                    [data.file.path]: data.file.content
-                }));
+                setGeneratedFiles(prev => {
+                    const updated = {
+                        ...prev,
+                        [data.file.path]: data.file.content
+                    };
+                    console.log('📝 File complete:', data.file.path, '| Total files:', Object.keys(updated).length);
+                    return updated;
+                });
                 setCurrentFile(null);
                 setCurrentFileContent('');
                 break;
 
+            case 'file_fixed':
+                setGeneratedFiles(prev => ({
+                    ...prev,
+                    [data.file]: prev[data.file] // Will be updated by supervisor
+                }));
+                toast.info(`Fixed: ${data.file}`);
+                break;
+
+            case 'file_added':
+                toast.info(`Added missing file: ${data.file}`);
+                break;
+
             case 'complete':
+                // Handle complete event with all files
+                if (data.data && data.data.files) {
+                    const filesObj: Record<string, string> = {};
+                    data.data.files.forEach((file: any) => {
+                        filesObj[file.path] = file.content;
+                    });
+                    console.log('✅ Complete event received with', data.data.files.length, 'files');
+                    console.log('📦 Files:', Object.keys(filesObj));
+                    setGeneratedFiles(filesObj);
+                }
                 setIsComplete(true);
                 setStatus('Code generation complete!');
                 if (id) {
@@ -209,7 +249,7 @@ export default function Chat() {
 
     return (
         <div className="min-h-screen bg-background p-4">
-            <div className="w-full max-w-7xl mx-auto space-y-6">
+            <div className="w-full max-w-[1920px] mx-auto space-y-6">
                 {/* Header */}
                 <div className="space-y-2">
                     <h1 className="text-3xl font-bold">{fileStructure?.description || 'Generated Project'}</h1>
@@ -217,60 +257,178 @@ export default function Chat() {
                     <p className="text-sm text-muted-foreground">{status}</p>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    {/* File Structure Panel */}
-                    <div className="space-y-4">
-                        <h2 className="text-xl font-semibold">Project Structure</h2>
-                        {fileStructure && <FileTreeView fileStructure={fileStructure.fileStructure} />}
+                {/* Main Content with Tabs */}
+                <Tabs defaultValue="preview" className="w-full">
+                    <TabsList className="grid w-full max-w-md grid-cols-3">
+                        <TabsTrigger value="preview" className="flex items-center gap-2">
+                            <Eye className="w-4 h-4" />
+                            Live Preview
+                        </TabsTrigger>
+                        <TabsTrigger value="structure" className="flex items-center gap-2">
+                            <FolderTree className="w-4 h-4" />
+                            Structure
+                        </TabsTrigger>
+                        <TabsTrigger value="code" className="flex items-center gap-2">
+                            <Code2 className="w-4 h-4" />
+                            Raw Code
+                        </TabsTrigger>
+                    </TabsList>
 
-                        {/* Dependencies */}
-                        {fileStructure?.dependencies && Object.keys(fileStructure.dependencies).length > 0 && (
-                            <div className="space-y-2">
-                                <h3 className="text-lg font-semibold">Dependencies</h3>
-                                <div className="bg-card border border-border rounded-lg p-4 font-mono text-xs space-y-1">
-                                    {Object.entries(fileStructure.dependencies).map(([pkg, version]) => (
-                                        <div key={pkg}>{pkg}: {version}</div>
+                    {/* Live Preview Tab */}
+                    <TabsContent value="preview" className="mt-6">
+                        {isComplete && fileStructure ? (
+                            <>
+                                <div className="mb-4 text-sm text-muted-foreground">
+                                    Rendering {Object.keys(generatedFiles).length} files
+                                </div>
+                                <CodePreview 
+                                    files={Object.entries(generatedFiles).map(([path, content]) => ({
+                                        path,
+                                        content
+                                    }))}
+                                    fileStructure={fileStructure}
+                                    onFilesUpdated={(updatedFiles) => {
+                                        const filesObj: Record<string, string> = {};
+                                        updatedFiles.forEach(file => {
+                                            filesObj[file.path] = file.content;
+                                        });
+                                        setGeneratedFiles(filesObj);
+                                        toast.success('Files updated with fixes!');
+                                    }}
+                                />
+                            </>
+                        ) : (
+                            <div className="flex flex-col items-center justify-center min-h-[500px] bg-card border border-border rounded-lg">
+                                <div className="text-center space-y-4">
+                                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+                                    <p className="text-muted-foreground">Generating code...</p>
+                                    <p className="text-sm text-muted-foreground">{status}</p>
+                                    {currentFile && (
+                                        <p className="text-xs text-muted-foreground">
+                                            Currently generating: {currentFile}
+                                        </p>
+                                    )}
+                                    <p className="text-xs text-muted-foreground">
+                                        Files generated: {Object.keys(generatedFiles).length}
+                                    </p>
+                                </div>
+                            </div>
+                        )}
+                    </TabsContent>
+
+                    {/* File Structure Tab */}
+                    <TabsContent value="structure" className="mt-6">
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            {/* File Structure Panel */}
+                            <div className="space-y-4">
+                                <h2 className="text-xl font-semibold">Project Structure</h2>
+                                {fileStructure ? (
+                                    <FileTreeView fileStructure={fileStructure.fileStructure} />
+                                ) : (
+                                    <div className="bg-card border border-border rounded-lg p-8 text-center">
+                                        <p className="text-muted-foreground">Generating structure...</p>
+                                    </div>
+                                )}
+
+                                {/* Dependencies */}
+                                {fileStructure?.dependencies && Object.keys(fileStructure.dependencies).length > 0 && (
+                                    <div className="space-y-2">
+                                        <h3 className="text-lg font-semibold">Dependencies</h3>
+                                        <div className="bg-card border border-border rounded-lg p-4 font-mono text-xs space-y-1 max-h-[300px] overflow-y-auto">
+                                            {Object.entries(fileStructure.dependencies).map(([pkg, version]) => (
+                                                <div key={pkg} className="flex justify-between">
+                                                    <span className="text-primary">{pkg}</span>
+                                                    <span className="text-muted-foreground">{version}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Dev Dependencies */}
+                                {fileStructure?.devDependencies && Object.keys(fileStructure.devDependencies).length > 0 && (
+                                    <div className="space-y-2">
+                                        <h3 className="text-lg font-semibold">Dev Dependencies</h3>
+                                        <div className="bg-card border border-border rounded-lg p-4 font-mono text-xs space-y-1 max-h-[300px] overflow-y-auto">
+                                            {Object.entries(fileStructure.devDependencies).map(([pkg, version]) => (
+                                                <div key={pkg} className="flex justify-between">
+                                                    <span className="text-primary">{pkg}</span>
+                                                    <span className="text-muted-foreground">{version}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Generation Progress */}
+                            <div className="space-y-4">
+                                <h2 className="text-xl font-semibold">Generation Progress</h2>
+                                <div className="space-y-2">
+                                    {Object.entries(generatedFiles).map(([path]) => (
+                                        <div key={path} className="bg-green-500/10 border border-green-500/50 rounded-lg p-3">
+                                            <div className="flex items-center gap-2">
+                                                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                                                <span className="font-mono text-sm">{path}</span>
+                                            </div>
+                                        </div>
                                     ))}
+
+                                    {/* Currently generating file */}
+                                    {currentFile && (
+                                        <div className="bg-blue-500/10 border border-blue-500/50 rounded-lg p-3 animate-pulse">
+                                            <div className="flex items-center gap-2">
+                                                <div className="w-2 h-2 bg-blue-500 rounded-full animate-ping"></div>
+                                                <span className="font-mono text-sm">{currentFile}</span>
+                                                <span className="text-xs text-muted-foreground ml-auto">generating...</span>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
+
+                                {isComplete && (
+                                    <div className="bg-green-500/10 border border-green-500/50 rounded-lg p-4 text-center mt-4">
+                                        <p className="text-green-500 font-semibold">✅ All files generated successfully!</p>
+                                    </div>
+                                )}
                             </div>
-                        )}
-                    </div>
-
-                    {/* Code Display Panel */}
-                    <div className="space-y-4">
-                        <h2 className="text-xl font-semibold">Generated Files</h2>
-                        <div className="space-y-4">
-                            {Object.entries(generatedFiles).map(([path, content]) => (
-                                <div key={path} className="bg-card border border-border rounded-lg overflow-hidden">
-                                    <div className="bg-muted px-4 py-2 border-b border-border font-mono text-sm">
-                                        {path}
-                                    </div>
-                                    <pre className="p-4 overflow-x-auto text-xs">
-                                        <code>{content}</code>
-                                    </pre>
-                                </div>
-                            ))}
-
-                            {/* Currently generating file */}
-                            {currentFile && (
-                                <div className="bg-card border border-border rounded-lg overflow-hidden animate-pulse">
-                                    <div className="bg-muted px-4 py-2 border-b border-border font-mono text-sm">
-                                        {currentFile} (generating...)
-                                    </div>
-                                    <pre className="p-4 overflow-x-auto text-xs">
-                                        <code>{currentFileContent}</code>
-                                    </pre>
-                                </div>
-                            )}
                         </div>
+                    </TabsContent>
 
-                        {isComplete && (
-                            <div className="bg-green-500/10 border border-green-500/50 rounded-lg p-4 text-center">
-                                <p className="text-green-500 font-semibold">✅ All files generated successfully!</p>
+                    {/* Raw Code Tab */}
+                    <TabsContent value="code" className="mt-6">
+                        <div className="space-y-4">
+                            <h2 className="text-xl font-semibold">Generated Files</h2>
+                            <div className="space-y-4">
+                                {Object.entries(generatedFiles).map(([path, content]) => (
+                                    <CodeEditor
+                                        key={path}
+                                        code={content}
+                                        fileName={path}
+                                    />
+                                ))}
+
+                                {/* Currently generating file */}
+                                {currentFile && (
+                                    <div className="bg-card border border-border rounded-lg overflow-hidden animate-pulse">
+                                        <div className="bg-muted px-4 py-2 border-b border-border font-mono text-sm">
+                                            {currentFile} (generating...)
+                                        </div>
+                                        <pre className="p-4 overflow-x-auto text-xs max-h-[500px] overflow-y-auto">
+                                            <code>{currentFileContent}</code>
+                                        </pre>
+                                    </div>
+                                )}
+
+                                {Object.keys(generatedFiles).length === 0 && !currentFile && (
+                                    <div className="bg-card border border-border rounded-lg p-8 text-center">
+                                        <p className="text-muted-foreground">No files generated yet...</p>
+                                    </div>
+                                )}
                             </div>
-                        )}
-                    </div>
-                </div>
+                        </div>
+                    </TabsContent>
+                </Tabs>
             </div>
         </div>
     );
